@@ -1,0 +1,5 @@
+region           = "sa-saopaulo-1"
+compartment_ocid = "ocid1.compartment.oc1..<COMPARTMENT_OCID>"
+
+project_name = "bookcommerce"
+environment  = "prod"
