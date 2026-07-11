@@ -1,0 +1,49 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Variáveis privadas
+terraform.tfvars
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Override local
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Arquivos de configuração locais
+.terraformrc
+terraform.rc
+
+# Credenciais OCI
+.oci/
+oci_api_key.pem
+*.pem
+*.key
+
+# Kubeconfig e Kubernetes
+kubeconfig
+kubeconfig.*
+.kube/
+
+# Secrets da aplicação
+values-secrets*.yaml
+secrets*.yaml
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Temporários
+*.swp
+*.swo
+*~
+.DS_Store
+*.log
