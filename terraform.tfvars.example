@@ -9,3 +9,11 @@ public_subnet_cidr_block = "10.0.1.0/24"
 
 ssh_allowed_cidr = "<SEU_IP_PUBLICO>/32"
 web_allowed_cidr = "0.0.0.0/0"
+
+instance_shape         = "VM.Standard.A1.Flex"
+instance_ocpus         = 2
+instance_memory_in_gbs = 12
+
+boot_volume_size_in_gbs = 100
+
+ssh_public_key_path = "/home/USUARIO/.ssh/bookcommerce_oracle.pub"

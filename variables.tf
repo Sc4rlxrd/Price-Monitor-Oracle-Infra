@@ -71,3 +71,63 @@ variable "web_allowed_cidr" {
     error_message = "O web_allowed_cidr deve ser um CIDR válido."
   }
 }
+
+variable "instance_shape" {
+  description = "Shape da instância Compute."
+  type        = string
+  default     = "VM.Standard.A1.Flex"
+}
+
+variable "instance_ocpus" {
+  description = "Quantidade de OCPUs da instância."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.instance_ocpus > 0
+    error_message = "instance_ocpus deve ser maior que zero."
+  }
+}
+
+variable "instance_memory_in_gbs" {
+  description = "Quantidade de memória RAM da instância em GB."
+  type        = number
+  default     = 12
+
+  validation {
+    condition     = var.instance_memory_in_gbs > 0
+    error_message = "instance_memory_in_gbs deve ser maior que zero."
+  }
+}
+
+variable "boot_volume_size_in_gbs" {
+  description = "Tamanho do volume de inicialização da VM."
+  type        = number
+  default     = 100
+
+  validation {
+    condition     = var.boot_volume_size_in_gbs >= 47
+    error_message = "O volume de inicialização deve ter pelo menos 47 GB."
+  }
+}
+
+variable "ssh_public_key_path" {
+  description = "Caminho local para a chave pública usada no acesso SSH."
+  type        = string
+
+  validation {
+    condition     = fileexists(pathexpand(var.ssh_public_key_path))
+    error_message = "O arquivo informado em ssh_public_key_path não existe."
+  }
+}
+
+variable "fault_domain_index" {
+  description = "Índice do Fault Domain usado para criar a instância."
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = contains([0, 1, 2], var.fault_domain_index)
+    error_message = "fault_domain_index deve ser 0, 1 ou 2."
+  }
+}
