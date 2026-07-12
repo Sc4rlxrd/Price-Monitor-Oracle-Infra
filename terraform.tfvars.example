@@ -21,8 +21,11 @@ environment  = "prod"
 vcn_cidr_block           = "10.0.0.0/16"
 public_subnet_cidr_block = "10.0.1.0/24"
 
-# Permite SSH somente a partir do seu endereço IPv4 público.
-ssh_allowed_cidr = "<SEU_IP_PUBLICO>/32"
+# Permite SSH somente a partir dos  endereços IPv4 público.
+ssh_allowed_cidrs = [
+  "<IP_PUBLICO_PRINCIPAL>/32",
+  "<IP_PUBLICO_ALTERNATIVO>/32",
+]
 
 # Permite acesso público às portas web configuradas.
 web_allowed_cidr = "0.0.0.0/0"

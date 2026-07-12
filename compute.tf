@@ -51,6 +51,11 @@ resource "oci_core_instance" "bookcommerce" {
       )
     )
   }
+  lifecycle {
+    ignore_changes = [
+      metadata["user_data"]
+    ]
+  }
 
   preserve_boot_volume = false
 

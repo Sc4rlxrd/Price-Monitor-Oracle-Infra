@@ -15,18 +15,24 @@ resource "oci_core_security_list" "public" {
     description = "Allow all outbound IPv4 traffic"
   }
 
-  # SSH disponível somente pelo IP definido no terraform.tfvars.
-  ingress_security_rules {
-    protocol    = "6"
-    source      = var.ssh_allowed_cidr
-    source_type = "CIDR_BLOCK"
-    stateless   = false
+  # Cria uma regra SSH para cada endereço público autorizado
+  # definido no terraform.tfvars.
+  dynamic "ingress_security_rules" {
+    for_each = var.ssh_allowed_cidrs
+    iterator = ssh_cidr
 
-    description = "Allow SSH from the administrator public IP"
+    content {
+      protocol    = "6"
+      source      = ssh_cidr.value
+      source_type = "CIDR_BLOCK"
+      stateless   = false
 
-    tcp_options {
-      min = 22
-      max = 22
+      description = "Allow SSH from trusted administrator IP"
+
+      tcp_options {
+        min = 22
+        max = 22
+      }
     }
   }
 

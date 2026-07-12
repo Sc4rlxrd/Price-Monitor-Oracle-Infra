@@ -51,13 +51,20 @@ variable "public_subnet_cidr_block" {
   }
 }
 
-variable "ssh_allowed_cidr" {
-  description = "Endereço público autorizado a acessar a VM por SSH."
-  type        = string
+variable "ssh_allowed_cidrs" {
+  description = "Conjunto de IPv4 públicos permitidos para acesso SSH."
+  type        = set(string)
 
   validation {
-    condition     = can(cidrnetmask(var.ssh_allowed_cidr))
-    error_message = "O ssh_allowed_cidr deve ser um CIDR válido, normalmente SEU_IP/32."
+    condition = (
+      length(var.ssh_allowed_cidrs) > 0 &&
+      alltrue([
+        for cidr in var.ssh_allowed_cidrs :
+        can(cidrnetmask(cidr))
+      ])
+    )
+
+    error_message = "Todos os itens de ssh_allowed_cidrs devem ser CIDRs IPv4 válidos, normalmente IP/32."
   }
 }
 
