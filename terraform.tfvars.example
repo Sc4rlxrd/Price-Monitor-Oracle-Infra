@@ -3,3 +3,9 @@ compartment_ocid = "ocid1.compartment.oc1..<COMPARTMENT_OCID>"
 
 project_name = "bookcommerce"
 environment  = "prod"
+
+vcn_cidr_block           = "10.0.0.0/16"
+public_subnet_cidr_block = "10.0.1.0/24"
+
+ssh_allowed_cidr = "<SEU_IP_PUBLICO>/32"
+web_allowed_cidr = "0.0.0.0/0"
