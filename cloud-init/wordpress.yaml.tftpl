@@ -1,0 +1,22 @@
+#cloud-config
+
+package_update: false
+package_upgrade: false
+
+write_files:
+  - path: /usr/local/sbin/bootstrap-wordpress.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${bootstrap_script_b64}
+
+  - path: /opt/wordpress/compose.yaml
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${compose_yaml_b64}
+
+runcmd:
+  - [bash, /usr/local/sbin/bootstrap-wordpress.sh]
+
+final_message: "WordPress configurado com Docker Compose."

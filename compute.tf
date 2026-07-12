@@ -5,9 +5,15 @@ resource "oci_core_instance" "bookcommerce" {
   display_name = "${local.name_prefix}-vm"
   shape        = var.instance_shape
 
-  shape_config {
-    ocpus         = var.instance_ocpus
-    memory_in_gbs = var.instance_memory_in_gbs
+  # Shapes Flex permitem configurar OCPUs e memória.
+  # Shapes fixas, como a E2.1.Micro, não recebem este bloco.
+  dynamic "shape_config" {
+    for_each = endswith(var.instance_shape, ".Flex") ? [1] : []
+
+    content {
+      ocpus         = var.instance_ocpus
+      memory_in_gbs = var.instance_memory_in_gbs
+    }
   }
 
   create_vnic_details {
@@ -26,7 +32,24 @@ resource "oci_core_instance" "bookcommerce" {
   }
 
   metadata = {
-    ssh_authorized_keys = file(pathexpand(var.ssh_public_key_path))
+    ssh_authorized_keys = file(
+      pathexpand(var.ssh_public_key_path)
+    )
+
+    user_data = base64encode(
+      templatefile(
+        "${path.module}/cloud-init/wordpress.yaml.tftpl",
+        {
+          bootstrap_script_b64 = filebase64(
+            "${path.module}/scripts/bootstrap-wordpress.sh"
+          )
+
+          compose_yaml_b64 = filebase64(
+            "${path.module}/docker/wordpress-compose.yaml"
+          )
+        }
+      )
+    )
   }
 
   preserve_boot_volume = false

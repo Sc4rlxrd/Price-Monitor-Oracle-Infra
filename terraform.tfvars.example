@@ -1,19 +1,77 @@
+# ============================================================
+# Oracle Cloud
+# ============================================================
+
 region           = "sa-saopaulo-1"
 compartment_ocid = "ocid1.compartment.oc1..<COMPARTMENT_OCID>"
+
+
+# ============================================================
+# Projeto
+# ============================================================
 
 project_name = "bookcommerce"
 environment  = "prod"
 
+
+# ============================================================
+# Rede
+# ============================================================
+
 vcn_cidr_block           = "10.0.0.0/16"
 public_subnet_cidr_block = "10.0.1.0/24"
 
+# Permite SSH somente a partir do seu endereço IPv4 público.
 ssh_allowed_cidr = "<SEU_IP_PUBLICO>/32"
+
+# Permite acesso público às portas web configuradas.
 web_allowed_cidr = "0.0.0.0/0"
+
+
+# ============================================================
+# Compute — perfil principal do BookCommerce
+# ============================================================
+#
+# Configuração ideal para executar K3s, Helm e os serviços
+# do BookCommerce.
+#
+# Shape ARM64 Always Free:
+# - 2 OCPUs
+# - 12 GB de memória
+# - boot volume de 100 GB
+#
 
 instance_shape         = "VM.Standard.A1.Flex"
 instance_ocpus         = 2
 instance_memory_in_gbs = 12
 
 boot_volume_size_in_gbs = 100
+
+
+# ============================================================
+# Compute — perfil alternativo para laboratório
+# ============================================================
+#
+# E2.1.Micro:
+# - arquitetura x86-64
+# - recursos fixos
+# - usada apenas para estudos leves, como WordPress e Nginx
+#
+# Para utilizar este perfil:
+# 1. Comente instance_shape e boot_volume_size_in_gbs acima.
+# 2. Descomente as duas linhas abaixo.
+#
+# As variáveis instance_ocpus e instance_memory_in_gbs podem
+# permanecer declaradas, pois o compute.tf ignora shape_config
+# quando a shape não termina com ".Flex".
+#
+
+# instance_shape = "VM.Standard.E2.1.Micro"
+# boot_volume_size_in_gbs = 50
+
+
+# ============================================================
+# SSH
+# ============================================================
 
 ssh_public_key_path = "/home/USUARIO/.ssh/bookcommerce_oracle.pub"
