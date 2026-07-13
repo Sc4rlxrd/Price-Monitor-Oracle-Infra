@@ -21,7 +21,11 @@ resource "oci_core_instance" "bookcommerce" {
 
     assign_public_ip = true
     display_name     = "${local.name_prefix}-vnic"
-    hostname_label   = "bookcommerce"
+
+    # Mantido como "bookcommerce" para preservar o hostname/DNS privado
+    # da VNIC existente e evitar risco de substituição da VM ou da interface.
+    # Alterar somente após revisar cuidadosamente o terraform plan.
+    hostname_label = "bookcommerce"
   }
 
   source_details {

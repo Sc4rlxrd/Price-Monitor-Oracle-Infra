@@ -10,7 +10,7 @@ compartment_ocid = "ocid1.compartment.oc1..<COMPARTMENT_OCID>"
 # Projeto
 # ============================================================
 
-project_name = "bookcommerce"
+project_name = "wordpress-personal"
 environment  = "prod"
 
 
