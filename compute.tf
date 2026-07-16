@@ -51,6 +51,19 @@ resource "oci_core_instance" "bookcommerce" {
           compose_yaml_b64 = filebase64(
             "${path.module}/docker/wordpress-compose.yaml"
           )
+
+          monitor_script_b64 = filebase64(
+            "${path.module}/monitoring/vm-monitor-telegram.sh"
+          )
+
+          monitor_service_b64 = filebase64(
+            "${path.module}/monitoring/vm-monitor-telegram.service"
+          )
+
+          monitor_timer_b64 = filebase64(
+            "${path.module}/monitoring/vm-monitor-telegram.timer"
+          )
+
         }
       )
     )

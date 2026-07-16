@@ -1,5 +1,7 @@
 #cloud-config
 
+timezone: America/Sao_Paulo
+
 package_update: false
 package_upgrade: false
 
@@ -16,7 +18,28 @@ write_files:
     encoding: b64
     content: ${compose_yaml_b64}
 
-runcmd:
-  - [bash, /usr/local/sbin/bootstrap-wordpress.sh]
+  - path: /usr/local/bin/vm-monitor-telegram
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${monitor_script_b64}
 
-final_message: "WordPress configurado com Docker Compose."
+  - path: /etc/systemd/system/vm-monitor-telegram.service
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${monitor_service_b64}
+
+  - path: /etc/systemd/system/vm-monitor-telegram.timer
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${monitor_timer_b64}
+
+runcmd:
+  - [timedatectl, set-ntp, "true"]
+  - [bash, /usr/local/sbin/bootstrap-wordpress.sh]
+  - [systemctl, daemon-reload]
+  - [systemctl, enable, --now, vm-monitor-telegram.timer]
+
+final_message: "WordPress, timezone, NTP e monitoramento configurados."
