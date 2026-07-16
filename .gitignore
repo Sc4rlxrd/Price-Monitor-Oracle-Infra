@@ -47,3 +47,7 @@ secrets*.yaml
 *~
 .DS_Store
 *.log
+
+# Secrets do monitoramento
+monitoring/telegram.env
+telegram.env

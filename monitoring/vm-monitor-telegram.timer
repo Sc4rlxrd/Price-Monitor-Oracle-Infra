@@ -1,0 +1,12 @@
+[Unit]
+Description=Executar monitoramento periódico da Oracle VM
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=6h
+AccuracySec=1min
+
+Unit=vm-monitor-telegram.service
+
+[Install]
+WantedBy=timers.target
