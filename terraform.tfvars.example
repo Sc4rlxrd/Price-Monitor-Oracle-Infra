@@ -78,3 +78,7 @@ boot_volume_size_in_gbs = 100
 # ============================================================
 
 ssh_public_key_path = "/home/USUARIO/.ssh/bookcommerce_oracle.pub"
+
+
+letsencrypt_email   = "admin@example.com"
+letsencrypt_staging = true

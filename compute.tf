@@ -40,7 +40,7 @@ resource "oci_core_instance" "bookcommerce" {
       pathexpand(var.ssh_public_key_path)
     )
 
-    user_data = base64encode(
+    user_data = base64gzip(
       templatefile(
         "${path.module}/cloud-init/wordpress.yaml.tftpl",
         {
@@ -50,6 +50,22 @@ resource "oci_core_instance" "bookcommerce" {
 
           compose_yaml_b64 = filebase64(
             "${path.module}/docker/wordpress-compose.yaml"
+          )
+
+          nginx_bootstrap_conf_b64 = filebase64(
+            "${path.module}/docker/nginx/bootstrap.conf.tftpl"
+          )
+
+          nginx_default_conf_b64 = filebase64(
+            "${path.module}/docker/nginx/default.conf.tftpl"
+          )
+
+          configure_https_script_b64 = filebase64(
+            "${path.module}/scripts/configure-https.sh"
+          )
+
+          reload_nginx_script_b64 = filebase64(
+            "${path.module}/scripts/reload-wordpress-nginx.sh"
           )
 
           monitor_script_b64 = filebase64(
@@ -64,6 +80,8 @@ resource "oci_core_instance" "bookcommerce" {
             "${path.module}/monitoring/vm-monitor-telegram.timer"
           )
 
+          letsencrypt_email   = var.letsencrypt_email
+          letsencrypt_staging = var.letsencrypt_staging
         }
       )
     )

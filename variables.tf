@@ -138,3 +138,19 @@ variable "fault_domain_index" {
     error_message = "fault_domain_index deve ser 0, 1 ou 2."
   }
 }
+
+variable "letsencrypt_email" {
+  description = "Email usado para registrar a conta no Let's Encrypt"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[^@]+@[^@]+\\.[^@]+$", var.letsencrypt_email))
+    error_message = "letsencrypt_email deve conter um email válido."
+  }
+}
+
+variable "letsencrypt_staging" {
+  description = "Usa o ambiente de testes do Let's Encrypt"
+  type        = bool
+  default     = true
+}

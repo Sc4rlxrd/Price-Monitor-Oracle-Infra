@@ -6,6 +6,7 @@ package_update: false
 package_upgrade: false
 
 write_files:
+
   - path: /usr/local/sbin/bootstrap-wordpress.sh
     owner: root:root
     permissions: "0755"
@@ -17,6 +18,30 @@ write_files:
     permissions: "0644"
     encoding: b64
     content: ${compose_yaml_b64}
+
+  - path: /opt/wordpress/nginx/bootstrap.conf
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${nginx_bootstrap_conf_b64}
+
+  - path: /opt/wordpress/nginx/default.conf.tftpl
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${nginx_default_conf_b64}
+
+  - path: /usr/local/sbin/configure-https.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${configure_https_script_b64}
+
+  - path: /usr/local/sbin/reload-wordpress-nginx.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${reload_nginx_script_b64}
 
   - path: /usr/local/bin/vm-monitor-telegram
     owner: root:root
@@ -38,8 +63,9 @@ write_files:
 
 runcmd:
   - [timedatectl, set-ntp, "true"]
-  - [bash, /usr/local/sbin/bootstrap-wordpress.sh]
   - [systemctl, daemon-reload]
   - [systemctl, enable, --now, vm-monitor-telegram.timer]
+  - [bash, /usr/local/sbin/bootstrap-wordpress.sh]
+  - [bash, /usr/local/sbin/configure-https.sh, "${letsencrypt_email}", "${letsencrypt_staging}"]
 
-final_message: "WordPress, timezone, NTP e monitoramento configurados."
+final_message: "WordPress, HTTPS/TLS, timezone, NTP e monitoramento provisionados."
