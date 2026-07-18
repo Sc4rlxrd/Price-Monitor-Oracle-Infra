@@ -9,36 +9,41 @@ export LC_ALL=C
 
 HOSTNAME="$(hostname --short)"
 
-CPU="$(
+# --- CPU ---
+CPU_PCT="$(
     top -bn1 |
         awk '/Cpu\(s\)/ {
-            printf "%.0f%%", 100 - $8
-            exit
+            printf "%.0f", 100 - $8
         }'
 )"
 
-RAM="$(
-    free |
+# --- RAM (percentual + valores absolutos em MB) ---
+read -r RAM_PCT RAM_USED_MB RAM_TOTAL_MB <<< "$(
+    free -m |
         awk '/Mem:/ {
-            printf "%.0f%%", (($2 - $7) / $2) * 100
+            used = $2 - $7
+            printf "%.0f %d %d", (used / $2) * 100, used, $2
         }'
 )"
 
-SWAP="$(
+# --- Swap ---
+SWAP_PCT="$(
     free |
         awk '/Swap:/ {
             if ($2 == 0) {
-                print "0%"
+                print "0"
             } else {
-                printf "%.0f%%", ($3 / $2) * 100
+                printf "%.0f", ($3 / $2) * 100
             }
         }'
 )"
 
-DISK="$(
-    df -P / |
+# --- Disco (percentual + valores absolutos) ---
+read -r DISK_PCT DISK_USED DISK_TOTAL <<< "$(
+    df -Ph / |
         awk 'NR == 2 {
-            print $5
+            gsub("%", "", $5)
+            print $5, $3, $2
         }'
 )"
 
@@ -53,16 +58,34 @@ LOAD_AVERAGE="$(
     }' /proc/loadavg
 )"
 
+# --- IP público ---
+PUBLIC_IP="$(
+    curl --silent --max-time 5 https://ifconfig.me || echo "indisponível"
+)"
+
+TIMESTAMP="$(date '+%d/%m/%Y %H:%M:%S')"
+
+# --- Define o emoji de status geral conforme os thresholds ---
+STATUS_EMOJI="🟢"
+if [ "${CPU_PCT}" -ge 90 ] || [ "${RAM_PCT}" -ge 90 ] || [ "${DISK_PCT}" -ge 90 ]; then
+    STATUS_EMOJI="🔴"
+elif [ "${CPU_PCT}" -ge 75 ] || [ "${RAM_PCT}" -ge 75 ] || [ "${DISK_PCT}" -ge 80 ]; then
+    STATUS_EMOJI="🟡"
+fi
+
 MESSAGE="🖥️ [ORACLE VM]
 
-🟢 ${HOSTNAME} online
+${STATUS_EMOJI} ${HOSTNAME} online
+🌐 IP: ${PUBLIC_IP}
 
-CPU: ${CPU}
-RAM: ${RAM}
-Swap: ${SWAP}
-Disco: ${DISK}
+CPU: ${CPU_PCT}%
+RAM: ${RAM_PCT}% (${RAM_USED_MB}MB/${RAM_TOTAL_MB}MB)
+Swap: ${SWAP_PCT}%
+Disco: ${DISK_PCT}% (${DISK_USED}/${DISK_TOTAL})
 Load: ${LOAD_AVERAGE}
-Uptime: ${UPTIME}"
+Uptime: ${UPTIME}
+
+🕐 ${TIMESTAMP}"
 
 curl \
     --fail \
