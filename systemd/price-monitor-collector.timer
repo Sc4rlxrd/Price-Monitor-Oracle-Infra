@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily Price Monitor collection schedule
+Documentation=https://github.com/Sc4rlxrd/Dashboard-Java-e-Python
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+AccuracySec=1min
+Unit=price-monitor-collector.service
+
+[Install]
+WantedBy=timers.target
