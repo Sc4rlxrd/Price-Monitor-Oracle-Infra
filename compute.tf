@@ -42,15 +42,20 @@ resource "oci_core_instance" "bookcommerce" {
 
     user_data = base64gzip(
       templatefile(
-        "${path.module}/cloud-init/wordpress.yaml.tftpl",
+        "${path.module}/cloud-init/price-monitor.yaml.tftpl",
         {
           bootstrap_script_b64 = filebase64(
-            "${path.module}/scripts/bootstrap-wordpress.sh"
+            "${path.module}/scripts/bootstrap-price-monitor.sh"
           )
 
           compose_yaml_b64 = filebase64(
-            "${path.module}/docker/wordpress-compose.yaml"
+            "${path.module}/docker/price-monitor-compose.yaml"
           )
+
+          collector_urls_b64 = filebase64(
+            "${path.module}/config/urls.txt"
+          )
+
 
           nginx_bootstrap_conf_b64 = filebase64(
             "${path.module}/docker/nginx/bootstrap.conf.tftpl"
@@ -60,12 +65,25 @@ resource "oci_core_instance" "bookcommerce" {
             "${path.module}/docker/nginx/default.conf.tftpl"
           )
 
+
           configure_https_script_b64 = filebase64(
             "${path.module}/scripts/configure-https.sh"
           )
 
           reload_nginx_script_b64 = filebase64(
-            "${path.module}/scripts/reload-wordpress-nginx.sh"
+            "${path.module}/scripts/reload-price-monitor-nginx.sh"
+          )
+
+          run_collector_script_b64 = filebase64(
+            "${path.module}/scripts/run-price-collector.sh"
+          )
+
+          collector_service_b64 = filebase64(
+            "${path.module}/systemd/price-monitor-collector.service"
+          )
+
+          collector_timer_b64 = filebase64(
+            "${path.module}/systemd/price-monitor-collector.timer"
           )
 
           monitor_script_b64 = filebase64(
@@ -80,12 +98,14 @@ resource "oci_core_instance" "bookcommerce" {
             "${path.module}/monitoring/vm-monitor-telegram.timer"
           )
 
-          letsencrypt_email   = var.letsencrypt_email
-          letsencrypt_staging = var.letsencrypt_staging
+          dashboard_auth_username = var.dashboard_auth_username
+          letsencrypt_email       = var.letsencrypt_email
+          letsencrypt_staging     = var.letsencrypt_staging
         }
       )
     )
   }
+
   lifecycle {
     ignore_changes = [
       metadata["user_data"]

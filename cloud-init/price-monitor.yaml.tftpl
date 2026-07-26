@@ -1,0 +1,140 @@
+#cloud-config
+
+timezone: America/Sao_Paulo
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - apache2-utils
+
+write_files:
+
+  #
+  # Bootstrap principal da aplicação.
+  #
+  - path: /usr/local/sbin/bootstrap-price-monitor.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${bootstrap_script_b64}
+
+  #
+  # Docker Compose de produção.
+  #
+  - path: /opt/price-monitor/compose.yaml
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${compose_yaml_b64}
+
+  #
+  # Watchlist utilizada pelo collector.
+  #
+  - path: /opt/price-monitor/config/urls.txt
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${collector_urls_b64}
+
+  #
+  # Configuração temporária HTTP utilizada antes
+  # da emissão do certificado TLS.
+  #
+  - path: /opt/price-monitor/nginx/bootstrap.conf
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${nginx_bootstrap_conf_b64}
+
+  #
+  # Template da configuração definitiva HTTPS.
+  #
+  - path: /opt/price-monitor/nginx/default.conf.tftpl
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${nginx_default_conf_b64}
+
+  #
+  # Emissão e configuração do certificado HTTPS.
+  #
+  - path: /usr/local/sbin/configure-https.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${configure_https_script_b64}
+
+  #
+  # Validação e reload do Nginx.
+  #
+  - path: /usr/local/sbin/reload-price-monitor-nginx.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${reload_nginx_script_b64}
+
+  #
+  # Execução isolada e agendada do collector.
+  #
+  - path: /usr/local/sbin/run-price-collector.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${run_collector_script_b64}
+
+  #
+  # Serviço systemd do collector.
+  #
+  - path: /etc/systemd/system/price-monitor-collector.service
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${collector_service_b64}
+
+  #
+  # Timer systemd do collector.
+  #
+  - path: /etc/systemd/system/price-monitor-collector.timer
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${collector_timer_b64}
+
+  #
+  # Monitoramento da VM por Telegram.
+  #
+  - path: /usr/local/bin/vm-monitor-telegram
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${monitor_script_b64}
+
+  - path: /etc/systemd/system/vm-monitor-telegram.service
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${monitor_service_b64}
+
+  - path: /etc/systemd/system/vm-monitor-telegram.timer
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${monitor_timer_b64}
+
+runcmd:
+
+  - [timedatectl, set-timezone, America/Sao_Paulo]
+  - [timedatectl, set-ntp, "true"]
+
+  - [systemctl, daemon-reload]
+
+  - [bash, /usr/local/sbin/bootstrap-price-monitor.sh, "${dashboard_auth_username}"]
+
+  - [bash, /usr/local/sbin/configure-https.sh, "${letsencrypt_email}", "${letsencrypt_staging}"]
+
+  - [systemctl, enable, --now, price-monitor-collector.timer]
+
+  - [systemctl, enable, --now, vm-monitor-telegram.timer]
+
+final_message: "Price Monitor, HTTPS/TLS, Basic Auth, collector agendado, timezone, NTP e monitoramento Telegram provisionados."

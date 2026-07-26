@@ -154,3 +154,20 @@ variable "letsencrypt_staging" {
   type        = bool
   default     = true
 }
+
+variable "dashboard_auth_username" {
+  description = "Nome de usuário inicial utilizado no Basic Auth do dashboard."
+  type        = string
+  default     = "guilherme"
+
+  validation {
+    condition = can(
+      regex(
+        "^[A-Za-z0-9._-]{1,64}$",
+        var.dashboard_auth_username
+      )
+    )
+
+    error_message = "dashboard_auth_username deve conter somente letras, números, ponto, hífen ou underline e ter no máximo 64 caracteres."
+  }
+}
