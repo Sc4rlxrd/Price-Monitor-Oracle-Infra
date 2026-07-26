@@ -1,0 +1,112 @@
+name: price-monitor
+
+services:
+  dashboard:
+    image: ghcr.io/sc4rlxrd/price-monitor-dashboard:${IMAGE_TAG:-sha-d40b47d}
+    container_name: price-monitor-dashboard
+
+    environment:
+      PRICE_DATA_FILE: /app/data/precos.json
+
+    expose:
+      - "8501"
+
+    volumes:
+      - /opt/price-monitor/data:/app/data:ro
+
+    mem_limit: 320m
+    restart: unless-stopped
+    init: true
+
+    networks:
+      - frontend
+
+  collector:
+    image: ghcr.io/sc4rlxrd/price-monitor-collector:${IMAGE_TAG:-sha-d40b47d}
+    container_name: price-monitor-collector
+
+    profiles:
+      - collector
+
+    environment:
+      H2_DATABASE_PATH: /app/data/price-monitor
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: ""
+      JPA_DDL_AUTO: update
+
+      JAVA_TOOL_OPTIONS: >-
+        -Xms64m
+        -Xmx192m
+        -Duser.timezone=America/Sao_Paulo
+        -XX:+ExitOnOutOfMemoryError
+
+      CHROME_BIN: /usr/bin/chromium-browser
+      CHROMEDRIVER_PATH: /usr/bin/chromedriver
+
+      COLLECTOR_ENABLED: "true"
+      COLLECTOR_URLS_FILE: /app/urls.txt
+      COLLECTOR_OUTPUT_FILE: /app/data/precos.json
+      COLLECTOR_DELAY_MS: "${COLLECTOR_DELAY_MS:-8000}"
+      COLLECTOR_LOG_LEVEL: "${COLLECTOR_LOG_LEVEL:-INFO}"
+
+    volumes:
+      - /opt/price-monitor/config/urls.txt:/app/urls.txt:ro
+      - /opt/price-monitor/data:/app/data
+
+    mem_limit: 768m
+    pids_limit: 256
+    restart: "no"
+    init: true
+
+    networks:
+      - egress
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: price-monitor-nginx
+
+    depends_on:
+      dashboard:
+        condition: service_healthy
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - type: bind
+        source: /opt/price-monitor/nginx/active.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: /opt/price-monitor/nginx/auth/.htpasswd
+        target: /etc/nginx/auth/.htpasswd
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: /opt/price-monitor/certbot/www
+        target: /var/www/certbot
+        read_only: true
+
+      - type: bind
+        source: /etc/letsencrypt
+        target: /etc/letsencrypt
+        read_only: true
+
+    mem_limit: 64m
+    restart: unless-stopped
+
+    networks:
+      - frontend
+
+networks:
+  frontend:
+    driver: bridge
+
+  egress:
+    driver: bridge
