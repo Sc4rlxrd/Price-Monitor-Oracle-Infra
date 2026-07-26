@@ -94,6 +94,8 @@ curl \
     --connect-timeout 10 \
     --max-time 20 \
     --retry 2 \
+    --retry-delay 2 \
+    --retry-all-errors \
     --request POST \
     "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \

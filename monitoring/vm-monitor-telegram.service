@@ -10,20 +10,27 @@ Type=oneshot
 User=nobody
 Group=nogroup
 
-EnvironmentFile=-/etc/vm-monitor/telegram.env
+EnvironmentFile=/etc/vm-monitor/telegram.env
 
 ExecStart=/usr/local/bin/vm-monitor-telegram
 
-RuntimeMaxSec=30
+TimeoutStartSec=30s
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vm-monitor-telegram
 
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
+
 ProtectSystem=strict
 ProtectHome=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
 ProtectClock=true
+ProtectHostname=true
 
 CapabilityBoundingSet=
 RestrictSUIDSGID=true
