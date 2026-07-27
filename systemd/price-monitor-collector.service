@@ -8,7 +8,6 @@ Requires=docker.service
 
 ConditionPathExists=/opt/price-monitor/compose.yaml
 ConditionPathExists=/opt/price-monitor/config/urls.txt
-ConditionPathIsExecutable=/usr/local/sbin/run-price-collector.sh
 
 [Service]
 Type=oneshot
