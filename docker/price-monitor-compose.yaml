@@ -2,17 +2,19 @@ name: price-monitor
 
 services:
   dashboard:
-    image: ghcr.io/sc4rlxrd/price-monitor-dashboard:${IMAGE_TAG:-sha-d40b47d}
+    image: ghcr.io/sc4rlxrd/price-monitor-dashboard:${IMAGE_TAG:-sha-6b785c7}
     container_name: price-monitor-dashboard
 
     environment:
       PRICE_DATA_FILE: /app/data/precos.json
+      URLS_FILE: /app/config/urls.txt
 
     expose:
       - "8501"
 
     volumes:
       - /opt/price-monitor/data:/app/data:ro
+      - /opt/price-monitor/config/urls.txt:/app/config/urls.txt:rw
 
     mem_limit: 320m
     restart: unless-stopped
@@ -22,7 +24,7 @@ services:
       - frontend
 
   collector:
-    image: ghcr.io/sc4rlxrd/price-monitor-collector:${IMAGE_TAG:-sha-d40b47d}
+    image: ghcr.io/sc4rlxrd/price-monitor-collector:${IMAGE_TAG:-sha-6b785c7}
     container_name: price-monitor-collector
 
     profiles:
