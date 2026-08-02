@@ -723,7 +723,14 @@ sudo journalctl \
 
 ## ⏱️ Collector agendado
 
-O collector executa diariamente às 03:00, no timezone configurado na VM.
+O collector é executado automaticamente **quatro vezes por dia**, com intervalo de aproximadamente seis horas, nos seguintes horários, utilizando o timezone `America/Sao_Paulo`.
+
+```text
+05:00
+11:00
+17:00
+23:00
+```
 
 ### Verificar o timer
 
