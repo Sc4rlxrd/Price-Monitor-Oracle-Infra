@@ -116,9 +116,7 @@ prepare_directories() {
 wait_for_nginx() {
   log "Aguardando o container ${NGINX_CONTAINER}."
 
-  local attempt
-
-  for attempt in $(seq 1 60); do
+  for _ in {1..60}; do
     if docker inspect \
       --format '{{.State.Running}}' \
       "${NGINX_CONTAINER}" 2>/dev/null |
@@ -142,11 +140,10 @@ validate_acme_webroot() {
 
   log "Validando o caminho HTTP do desafio ACME."
 
-  local attempt
   local response
   local acme_ready="false"
 
-  for attempt in $(seq 1 30); do
+  for _ in {1..30}; do
     response="$(
       curl \
         --fail \
@@ -417,11 +414,10 @@ activate_https_config() {
 validate_https_and_auth() {
   log "Validando HTTPS e Basic Auth."
 
-  local attempt
   local http_status
   local https_ready="false"
 
-  for attempt in $(seq 1 30); do
+  for _ in {1..30}; do
     http_status="$(
       curl \
         --insecure \

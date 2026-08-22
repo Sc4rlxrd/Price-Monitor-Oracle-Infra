@@ -1,4 +1,4 @@
-name: Terraform CI
+name: Infrastructure CI
 
 on:
   push:
@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: terraform-ci-${{ github.ref }}
+  group: infrastructure-ci-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -24,8 +24,9 @@ env:
   TF_INPUT: false
 
 jobs:
-  terraform-checks:
-    name: Terraform Checks
+
+  terraform:
+    name: Terraform
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -49,3 +50,77 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate -no-color
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: v0.64.0
+          cache: true
+
+      - name: TFLint init
+        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: TFLint
+        run: tflint --format compact
+
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
+
+      - name: Check scripts
+        run: |
+          shellcheck scripts/*.sh
+          shellcheck monitoring/*.sh
+
+
+  compose:
+    name: Docker Compose
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Docker Compose version
+        run: docker compose version
+
+      - name: Validate Docker Compose
+        run: |
+          docker compose \
+            --file docker/price-monitor-compose.yaml \
+            --profile collector \
+            config \
+            --quiet
+
+
+  security:
+    name: Infrastructure Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Trivy IaC scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: 0
