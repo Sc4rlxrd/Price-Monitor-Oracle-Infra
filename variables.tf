@@ -128,17 +128,6 @@ variable "ssh_public_key_path" {
   }
 }
 
-variable "fault_domain_index" {
-  description = "Índice do Fault Domain usado para criar a instância."
-  type        = number
-  default     = 0
-
-  validation {
-    condition     = contains([0, 1, 2], var.fault_domain_index)
-    error_message = "fault_domain_index deve ser 0, 1 ou 2."
-  }
-}
-
 variable "letsencrypt_email" {
   description = "Email usado para registrar a conta no Let's Encrypt"
   type        = string
