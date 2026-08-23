@@ -88,7 +88,38 @@ jobs:
             exit 1
           fi
 
+          if [[ "${OCI_USER_OCID}" == user=* ]]; then
+            echo "::error::OCI_USER_OCID must contain only the OCID, without 'user='."
+            exit 1
+          fi
+
+          if [[ "${OCI_TENANCY_OCID}" == tenancy=* ]]; then
+            echo "::error::OCI_TENANCY_OCID must contain only the OCID, without 'tenancy='."
+            exit 1
+          fi
+
+          if [[ "${OCI_FINGERPRINT}" == fingerprint=* ]]; then
+            echo "::error::OCI_FINGERPRINT must contain only the fingerprint value."
+            exit 1
+          fi
+
+          if [[ "${OCI_USER_OCID}" != ocid1.user.* ]]; then
+            echo "::error::OCI_USER_OCID has an unexpected format."
+            exit 1
+          fi
+
+          if [[ "${OCI_TENANCY_OCID}" != ocid1.tenancy.* ]]; then
+            echo "::error::OCI_TENANCY_OCID has an unexpected format."
+            exit 1
+          fi
+
+          if [[ ! "${OCI_FINGERPRINT}" =~ ^([0-9a-fA-F]{2}:){15}[0-9a-fA-F]{2}$ ]]; then
+            echo "::error::OCI_FINGERPRINT has an unexpected format."
+            exit 1
+          fi
+
           echo "All required GitHub Actions secrets are configured."
+          echo "OCI secret formats look valid."
 
       - name: Configure OCI credentials
         env:
@@ -103,6 +134,7 @@ jobs:
           install -d -m 0700 "${HOME}/.oci"
 
           printf '%s\n' "${OCI_PRIVATE_KEY}" \
+            | tr -d '\r' \
             > "${HOME}/.oci/oci_api_key.pem"
 
           chmod 0600 "${HOME}/.oci/oci_api_key.pem"
@@ -117,6 +149,59 @@ jobs:
           EOF
 
           chmod 0600 "${HOME}/.oci/config"
+
+          echo "OCI configuration files created."
+
+      - name: Validate OCI API key
+        env:
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          KEY_FILE="${HOME}/.oci/oci_api_key.pem"
+
+          if [[ ! -s "${KEY_FILE}" ]]; then
+            echo "::error::OCI private key file is empty or missing."
+            exit 1
+          fi
+
+          if ! openssl pkey \
+            -in "${KEY_FILE}" \
+            -noout \
+            >/dev/null 2>&1
+          then
+            echo "::error::OCI_PRIVATE_KEY is not a valid private key."
+            exit 1
+          fi
+
+          ACTUAL_FINGERPRINT="$(
+            openssl pkey \
+              -in "${KEY_FILE}" \
+              -pubout \
+              -outform DER \
+              2>/dev/null |
+            openssl dgst -md5 -c |
+            awk '{print $2}'
+          )"
+
+          EXPECTED_FINGERPRINT="$(
+            printf '%s' "${OCI_FINGERPRINT}" |
+            tr '[:upper:]' '[:lower:]'
+          )"
+
+          ACTUAL_FINGERPRINT="$(
+            printf '%s' "${ACTUAL_FINGERPRINT}" |
+            tr '[:upper:]' '[:lower:]'
+          )"
+
+          if [[ "${ACTUAL_FINGERPRINT}" != "${EXPECTED_FINGERPRINT}" ]]; then
+            echo "::error::OCI_PRIVATE_KEY does not match OCI_FINGERPRINT."
+            exit 1
+          fi
+
+          echo "OCI private key is valid."
+          echo "OCI private key matches the configured fingerprint."
 
       - name: Configure Terraform inputs
         env:
@@ -138,8 +223,25 @@ jobs:
 
           chmod 0600 terraform.tfvars
 
+          echo "Terraform input files created."
+
       - name: Terraform init
-        run: terraform init -input=false
+        env:
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          terraform init \
+            -input=false \
+            -reconfigure \
+            -backend-config="auth=APIKey" \
+            -backend-config="tenancy_ocid=${OCI_TENANCY_OCID}" \
+            -backend-config="user_ocid=${OCI_USER_OCID}" \
+            -backend-config="fingerprint=${OCI_FINGERPRINT}" \
+            -backend-config="private_key_path=${HOME}/.oci/oci_api_key.pem"
 
       - name: Terraform validate
         run: terraform validate -no-color
@@ -231,5 +333,5 @@ jobs:
             "${HOME}/.oci/oci_api_key.pem" \
             "${HOME}/.oci/config"
 
-
+          rm -rf .terraform
 
