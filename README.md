@@ -4,15 +4,19 @@
 
 ### Infraestrutura como código para executar um monitor de preços na Oracle Cloud
 
-Provisionamento reproduzível com **Terraform**, bootstrap com **cloud-init**, execução em **Docker Compose**, proxy reverso **Nginx**, HTTPS automático, autenticação, coleta agendada e monitoramento via Telegram.
+Provisionamento reproduzível com **Terraform**, bootstrap com **cloud-init**, execução em **Docker Compose**, proxy reverso **Nginx**, HTTPS automático, autenticação, coleta agendada, monitoramento via Telegram e **CI/CD da infraestrutura com GitHub Actions**.
 
-[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D%201.8-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
+[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D%201.12-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
 [![Oracle Cloud](https://img.shields.io/badge/Oracle%20Cloud-OCI-F80000?style=for-the-badge&logo=oracle&logoColor=white)](https://www.oracle.com/cloud/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 [![Nginx](https://img.shields.io/badge/Nginx-Reverse%20Proxy-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://nginx.org/)
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Python](https://img.shields.io/badge/Python-Streamlit-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://streamlit.io/)
 [![Status](https://img.shields.io/badge/status-deployed-success?style=for-the-badge)](#-estado-atual)
+
+[![Infrastructure CI](https://github.com/Sc4rlxrd/Price-Monitor-Oracle-Infra/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/Sc4rlxrd/Price-Monitor-Oracle-Infra/actions/workflows/terraform-ci.yml)
+[![Terraform Plan](https://github.com/Sc4rlxrd/Price-Monitor-Oracle-Infra/actions/workflows/terraform-plan.yml/badge.svg)](https://github.com/Sc4rlxrd/Price-Monitor-Oracle-Infra/actions/workflows/terraform-plan.yml)
+[![Terraform Apply](https://github.com/Sc4rlxrd/Price-Monitor-Oracle-Infra/actions/workflows/terraform-apply.yml/badge.svg)](https://github.com/Sc4rlxrd/Price-Monitor-Oracle-Infra/actions/workflows/terraform-apply.yml)
 
 **Infraestrutura:** este repositório
 **Aplicação:** [Sc4rlxrd/Dashboard-Java-e-Python](https://github.com/Sc4rlxrd/Dashboard-Java-e-Python)
@@ -30,6 +34,10 @@ A solução foi desenhada para operar em uma VM pequena, com aproximadamente **1
 Principais capacidades:
 
 - infraestrutura OCI reproduzível com Terraform;
+- state remoto no OCI Object Storage com versionamento;
+- CI de infraestrutura com Terraform, TFLint, ShellCheck, Docker Compose e Trivy;
+- `terraform plan` autenticado na OCI executado pelo GitHub Actions;
+- `terraform apply` manual e protegido pelo Environment `production`;
 - configuração inicial automatizada com cloud-init;
 - dashboard Python/Streamlit protegido por Nginx;
 - coleta Java/Spring Boot com Selenium e Chromium;
@@ -61,8 +69,12 @@ Principais capacidades:
 | Collector Java | Executado como job one-shot |
 | Persistência H2 | Ativa |
 | Exportação JSON | Ativa |
-| Timer do collector | Ativo, execução diária às 03:00 |
+| Timer do collector | Ativo, execuções às 05:00, 11:00, 17:00 e 23:00 |
 | Monitoramento Telegram | Ativo, execução periódica a cada 6 horas |
+| Remote state | OCI Object Storage privado, com versionamento |
+| Infrastructure CI | Ativo em `dev`, `master` e pull requests |
+| Terraform Plan | Ativo via pull request e execução manual |
+| Terraform Apply | Manual, restrito à `master` e protegido por `production` |
 | Recriação do zero | Validada com Terraform + cloud-init |
 
 ---
@@ -99,7 +111,7 @@ graph TD
     end
 
     subgraph Automacao["Automação e Monitoramento"]
-        CollectorTimer["Timer diário - 03:00"]
+        CollectorTimer["Timer - 05:00, 11:00, 17:00 e 23:00"]
         TelegramTimer["Timer periódico - 6 horas"]
         Monitor["Monitor Bash"]
         Telegram["Telegram Bot API"]
@@ -302,6 +314,11 @@ Como `preserve_boot_volume = false`, destruir a VM também pode eliminar esses d
 
 ```text
 .
+├── .github/
+│   └── workflows/
+│       ├── terraform-apply.yml
+│       ├── terraform-ci.yml
+│       └── terraform-plan.yml
 ├── cloud-init/
 │   ├── k3s.yaml.tftpl
 │   └── price-monitor.yaml.tftpl
@@ -325,6 +342,7 @@ Como `preserve_boot_volume = false`, destruir a VM também pode eliminar esses d
 ├── systemd/
 │   ├── price-monitor-collector.service
 │   └── price-monitor-collector.timer
+├── backend.tf
 ├── compute.tf
 ├── data.tf
 ├── locals.tf
@@ -337,6 +355,7 @@ Como `preserve_boot_volume = false`, destruir a VM também pode eliminar esses d
 ├── versions.tf
 ├── .gitignore
 ├── .terraform.lock.hcl
+├── .tflint.hcl
 └── README.md
 ```
 
@@ -344,11 +363,16 @@ Como `preserve_boot_volume = false`, destruir a VM também pode eliminar esses d
 
 | Arquivo ou diretório | Responsabilidade |
 |---|---|
+| `.github/workflows/terraform-ci.yml` | CI estático da infraestrutura |
+| `.github/workflows/terraform-plan.yml` | Plano autenticado contra a infraestrutura real da OCI |
+| `.github/workflows/terraform-apply.yml` | Apply manual e protegido em produção |
+| `backend.tf` | Backend remoto do Terraform no OCI Object Storage |
+| `.tflint.hcl` | Regras do TFLint usadas no CI |
 | `versions.tf` | Versões do Terraform e do provider OCI |
 | `providers.tf` | Configuração do provider OCI |
 | `variables.tf` | Variáveis e validações |
 | `locals.tf` | Prefixos e tags compartilhadas |
-| `data.tf` | Imagens, Availability Domains e Fault Domains |
+| `data.tf` | Imagens Ubuntu e Availability Domains utilizados pelo provisionamento |
 | `network.tf` | VCN, subnet, gateway e rotas |
 | `security.tf` | Regras de entrada e saída |
 | `compute.tf` | VM, metadata e montagem do cloud-init |
@@ -359,10 +383,287 @@ Como `preserve_boot_volume = false`, destruir a VM também pode eliminar esses d
 | `scripts/bootstrap-price-monitor.sh` | Instala Docker, cria swap e inicia a aplicação |
 | `scripts/configure-https.sh` | Emite o certificado e ativa a configuração TLS |
 | `scripts/run-price-collector.sh` | Coordena a coleta e restaura a aplicação |
-| `systemd/` | Agendamento diário do collector |
+| `systemd/` | Agendamento do collector às 05:00, 11:00, 17:00 e 23:00 |
 | `monitoring/` | Monitoramento da VM e integração com Telegram |
 | `config/urls.txt` | Produtos monitorados, sem rebuild de imagem |
 | `cloud-init/k3s.yaml.tftpl` | Referência histórica para estudos com K3s |
+
+
+---
+
+## 🔄 CI/CD da infraestrutura
+
+A automação deste repositório é dividida em **três workflows independentes**, cada um com uma responsabilidade específica. A separação evita que validações estáticas, leitura da infraestrutura real e alterações de produção compartilhem o mesmo nível de permissão.
+
+> O CI/CD descrito nesta seção gerencia a **infraestrutura OCI**. A atualização das imagens do dashboard e do collector dentro de uma VM já existente é tratada como um processo de deploy de aplicação separado. O `user_data` continua sendo utilizado para o bootstrap de novas instâncias.
+
+### Visão geral do fluxo
+
+```mermaid
+flowchart TD
+    DEV["Push em dev"] --> CI["Infrastructure CI"]
+    MASTER["Push em master"] --> CI
+    PR["Pull Request para master"] --> CI
+    PR --> PLAN["Terraform Plan"]
+    MANUAL_PLAN["Execução manual"] --> PLAN
+
+    CI --> CHECKS["fmt + validate + TFLint + ShellCheck + Compose + Trivy"]
+
+    PLAN --> OCI_AUTH["Autenticação OCI por GitHub Secrets"]
+    OCI_AUTH --> STATE["OCI Object Storage - remote state"]
+    STATE --> PLAN_RESULT["Plan sem apply"]
+
+    MANUAL_APPLY["Workflow manual na master + confirmação APPLY"] --> PREVIEW["Preview Production Plan"]
+    PREVIEW --> PROD["Environment production"]
+    PROD --> APPROVAL["Aprovação + wait timer"]
+    APPROVAL --> APPLY["Terraform Apply"]
+    APPLY --> VERIFY["Plan pós-apply para verificar convergência"]
+    VERIFY --> STATE
+```
+
+### Workflows
+
+| Workflow | Gatilho | Responsabilidade | Pode alterar a OCI? |
+|---|---|---|---|
+| `terraform-ci.yml` | Push em `dev`/`master`, PR para `master` e manual | Validar código, scripts, Compose e segurança | Não |
+| `terraform-plan.yml` | PR para `master` em caminhos relevantes ou manual | Ler o remote state e calcular mudanças contra a OCI real | Não |
+| `terraform-apply.yml` | Apenas manual (`workflow_dispatch`) | Aplicar mudanças aprovadas na infraestrutura de produção | Sim |
+
+### Infrastructure CI
+
+O workflow `terraform-ci.yml` executa jobs independentes em runners do GitHub Actions.
+
+#### Terraform
+
+A etapa Terraform utiliza a versão `1.15.9` no runner e executa:
+
+```text
+terraform fmt -check -recursive -diff
+        ↓
+terraform init -backend=false -input=false
+        ↓
+terraform validate -no-color
+        ↓
+TFLint
+```
+
+O `-backend=false` é proposital: o CI estático não precisa acessar o remote state nem receber credenciais da OCI.
+
+O **TFLint** complementa o `terraform validate`. Enquanto o Terraform valida sintaxe e consistência da configuração, o TFLint também detecta problemas de qualidade, como declarações que deixaram de ser utilizadas.
+
+#### ShellCheck
+
+Os scripts Bash são analisados com:
+
+```bash
+shellcheck scripts/*.sh
+shellcheck monitoring/*.sh
+```
+
+Isso permite detectar problemas de quoting, variáveis não utilizadas, construções suspeitas e outros erros comuns antes que um script seja enviado para uma VM.
+
+#### Docker Compose
+
+O arquivo de produção é validado sem iniciar containers:
+
+```bash
+docker compose \
+  --file docker/price-monitor-compose.yaml \
+  --profile collector \
+  config \
+  --quiet
+```
+
+#### Trivy IaC
+
+O Trivy analisa configurações de infraestrutura e funciona como quality gate para achados de severidade alta ou crítica:
+
+```text
+severity: HIGH,CRITICAL
+exit-code: 1
+```
+
+Um finding classificado como `HIGH` ou `CRITICAL` faz o job de segurança falhar.
+
+### Remote state no OCI Object Storage
+
+O state deixou de depender apenas da máquina local e foi migrado para um backend OCI definido em `backend.tf`.
+
+Configuração atual:
+
+```text
+OCI Object Storage
+└── price-monitor-terraform-state
+    └── prod/
+        └── terraform.tfstate
+```
+
+Características do bucket:
+
+- acesso público desabilitado;
+- Object Versioning habilitado;
+- state compartilhado entre a máquina de desenvolvimento e o GitHub Actions;
+- locking utilizado pelo backend durante operações que precisam proteger o state;
+- arquivo `terraform.tfstate` local continua ignorado pelo Git e não é usado como fonte de verdade da infraestrutura.
+
+A migração inicial foi realizada com:
+
+```bash
+terraform init -migrate-state
+```
+
+Após a migração, a lista de recursos antes e depois foi comparada e um `terraform plan` confirmou que a infraestrutura real continuava alinhada com a configuração.
+
+> O bucket do remote state é administrado separadamente da infraestrutura principal para não ficar dependente do próprio state que armazena e para não ser removido por um `terraform destroy` deste projeto.
+
+### Terraform Plan no GitHub Actions
+
+O workflow `terraform-plan.yml` autentica o runner na OCI, inicializa o backend remoto e executa um plano contra a infraestrutura real.
+
+Fluxo simplificado:
+
+```text
+GitHub Actions
+      │
+      ├── valida os secrets obrigatórios
+      ├── valida formato dos OCIDs e fingerprint
+      ├── reconstrói temporariamente ~/.oci/config
+      ├── valida a private key e sua correspondência com o fingerprint
+      ├── cria terraform.tfvars temporário
+      ├── cria a chave SSH pública temporária
+      │
+      ▼
+terraform init -reconfigure
+      │
+      ▼
+OCI Object Storage / remote state
+      │
+      ▼
+terraform validate
+      │
+      ▼
+terraform plan -detailed-exitcode
+```
+
+O `terraform plan` usa os códigos de saída detalhados:
+
+| Código | Significado |
+|---:|---|
+| `0` | Plano executado sem mudanças |
+| `1` | Erro durante o plano |
+| `2` | Plano executado e mudanças detectadas |
+
+Encontrar mudanças não é tratado como erro. O objetivo deste workflow é justamente identificar diferenças antes do deploy.
+
+Por segurança:
+
+- o conteúdo completo do plan é redirecionado para arquivo temporário em vez de ser publicado diretamente no log;
+- erros exibidos passam por sanitização básica de OCIDs e endereços IPv4;
+- o `tfplan` não é publicado como artifact;
+- `terraform.tfvars`, private key, configuração OCI, plan e arquivos auxiliares são removidos no final do job;
+- `.terraform/` também é removido, pois dados de configuração do backend podem existir durante a execução;
+- pull requests originados de forks não recebem o job autenticado com Repository Secrets.
+
+Esse workflow **não contém `terraform apply` nem `terraform destroy`**.
+
+### Terraform Apply protegido
+
+O workflow `terraform-apply.yml` implementa o CD da infraestrutura de produção.
+
+A execução é deliberadamente mais restritiva:
+
+1. somente execução manual via `workflow_dispatch`;
+2. exige selecionar a confirmação `APPLY`;
+3. valida que o workflow está sendo executado na branch `master`;
+4. gera um plano de preview antes do deploy;
+5. exibe no GitHub Actions a contagem de `create`, `update` e `delete`;
+6. o job de alteração utiliza o Environment `production`;
+7. o Environment exige aprovação antes da continuação e possui wait timer de 5 minutos;
+8. após a liberação, um novo plano é gerado no job aprovado;
+9. `terraform apply` recebe exatamente esse plano salvo;
+10. um novo `terraform plan -detailed-exitcode` é executado após o apply para verificar a convergência da infraestrutura;
+11. arquivos sensíveis e temporários são removidos mesmo em caso de falha.
+
+O fluxo fica:
+
+```text
+Run workflow na master
+        │
+        ├── confirmation = APPLY
+        ▼
+Validate Deployment Request
+        ▼
+Preview Production Plan
+        │
+        ├── Create
+        ├── Update
+        └── Delete
+        ▼
+Environment: production
+        │
+        ├── aprovação obrigatória
+        └── wait timer de 5 minutos
+        ▼
+Generate approved plan
+        ▼
+terraform apply tfplan
+        ▼
+Verify final state
+```
+
+A concorrência do workflow de produção utiliza `cancel-in-progress: false`. Assim, uma nova solicitação não cancela automaticamente um deployment que já possa estar em execução.
+
+O workflow de apply **não implementa `terraform destroy`**. A destruição permanece uma operação separada, deliberada e revisada conforme a seção [Destruição controlada](#-destruição-controlada).
+
+### GitHub Secrets necessários
+
+Nenhuma credencial OCI é versionada no repositório. Os workflows autenticados usam Repository Secrets.
+
+| Secret | Conteúdo esperado |
+|---|---|
+| `OCI_USER_OCID` | OCID completo do usuário OCI, sem o prefixo `user=` |
+| `OCI_TENANCY_OCID` | OCID completo da tenancy, sem o prefixo `tenancy=` |
+| `OCI_FINGERPRINT` | Fingerprint da API key cadastrada no usuário OCI |
+| `OCI_PRIVATE_KEY` | Conteúdo integral da private key PEM correspondente ao fingerprint |
+| `SSH_PUBLIC_KEY` | Conteúdo da chave SSH pública utilizada no provisionamento |
+| `TF_VARS` | Conteúdo das variáveis reais de produção que não são versionadas |
+
+O `TF_VARS` utilizado no Actions não precisa armazenar um caminho local como:
+
+```hcl
+ssh_public_key_path = "/home/usuario/.ssh/price_monitor_oracle.pub"
+```
+
+O runner cria uma chave pública temporária e passa o caminho explicitamente ao Terraform com `-var="ssh_public_key_path=..."`.
+
+### Separação entre CI/CD de infraestrutura e deploy da aplicação
+
+O Terraform gerencia a existência e a configuração declarativa da infraestrutura OCI. Ele não é utilizado para reaplicar continuamente os arquivos do cloud-init em uma VM que já está em execução.
+
+A instância possui:
+
+```hcl
+lifecycle {
+  ignore_changes = [
+    metadata["user_data"]
+  ]
+}
+```
+
+Portanto:
+
+```text
+cloud-init / user_data
+→ bootstrap de uma VM nova
+
+Terraform CI/CD
+→ VCN, subnet, regras, instância e demais recursos OCI
+
+Application CD
+→ futura atualização das imagens do dashboard/collector na VM existente
+```
+
+Essa separação evita usar replacement da VM ou reaplicação de `user_data` como mecanismo de atualização de aplicação.
 
 ---
 
@@ -371,7 +672,7 @@ Como `preserve_boot_volume = false`, destruir a VM também pode eliminar esses d
 | Requisito | Observação |
 |---|---|
 | Conta Oracle Cloud | Com permissão para criar os recursos utilizados |
-| Terraform | `>= 1.8.0, < 2.0.0` |
+| Terraform | `>= 1.12.0, < 2.0.0` |
 | Provider OCI | Versão definida em `versions.tf` |
 | Perfil OCI local | Chave de API e configuração válidas |
 | Chave SSH | Par de chaves para acesso à VM |
@@ -442,7 +743,6 @@ dashboard_auth_username = "ADMIN"
 | `instance_memory_in_gbs` | Memória para shapes Flex |
 | `boot_volume_size_in_gbs` | Tamanho do boot volume |
 | `ssh_public_key_path` | Caminho da chave SSH pública |
-| `fault_domain_index` | Índice do Fault Domain |
 | `letsencrypt_email` | E-mail da conta Let's Encrypt |
 | `letsencrypt_staging` | Usa o ambiente de testes do Let's Encrypt |
 | `dashboard_auth_username` | Usuário inicial do Basic Auth |
@@ -452,6 +752,8 @@ As variáveis de CPU e memória são ignoradas para shapes fixas que não termin
 ---
 
 ## 🚀 Provisionamento
+
+> Os comandos abaixo continuam disponíveis para operação local e provisionamento manual. Para o fluxo automatizado, consulte a seção [CI/CD da infraestrutura](#-cicd-da-infraestrutura).
 
 ### 1. Inicializar e validar
 
@@ -964,6 +1266,17 @@ O serviço do Telegram utiliza controles como:
 - capability bounding set vazio;
 - famílias de endereço restritas.
 
+### CI/CD e remote state
+
+- o remote state é armazenado em bucket privado do OCI Object Storage com versionamento habilitado;
+- credenciais OCI e variáveis reais são fornecidas ao GitHub Actions por Secrets;
+- o workflow de CI estático usa `terraform init -backend=false` e não recebe acesso ao state remoto;
+- o workflow de plan pode consultar a infraestrutura, mas não possui etapa de `apply`;
+- o apply é manual, restrito à `master` e protegido pelo Environment `production`;
+- o plan completo não é publicado como artifact;
+- arquivos temporários contendo credenciais, `tfvars` ou planos são removidos ao final dos jobs;
+- `terraform destroy` não faz parte dos workflows de CI/CD.
+
 ### User data
 
 A instância ignora mudanças posteriores em `metadata["user_data"]`:
@@ -1018,7 +1331,7 @@ scp \
 
 Arquivos protegidos por root devem ser copiados primeiro para uma área temporária segura ou empacotados com `sudo`.
 
-Também faça backup do state:
+O state de produção está no OCI Object Storage com versionamento. Para manter também uma cópia pontual fora do backend remoto, use `terraform state pull`:
 
 ```bash
 mkdir -p \
@@ -1117,7 +1430,11 @@ Alguns nomes internos herdados, como labels Terraform ou hostname, podem permane
 ## 📏 Boas práticas adotadas
 
 - planos Terraform salvos e revisados antes do `apply`;
-- state e variáveis reais fora do Git;
+- remote state em OCI Object Storage privado e versionado;
+- `terraform.tfvars`, credenciais e chaves fora do Git;
+- CI de infraestrutura com lint, validação de Compose e scanning de IaC;
+- plan remoto contra a OCI antes de qualquer alteração;
+- apply de produção manual, aprovado e executado somente na `master`;
 - senha do dashboard gerada dentro da VM;
 - token do Telegram enviado fora do Terraform;
 - SSH restrito a redes confiáveis;
