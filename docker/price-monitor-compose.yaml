@@ -2,7 +2,7 @@ name: price-monitor
 
 services:
   dashboard:
-    image: ghcr.io/sc4rlxrd/price-monitor-dashboard:${IMAGE_TAG:-sha-6b785c7}
+    image: ghcr.io/sc4rlxrd/price-monitor-dashboard:${IMAGE_TAG:-sha-9cffd00}
     container_name: price-monitor-dashboard
 
     environment:
@@ -24,7 +24,7 @@ services:
       - frontend
 
   collector:
-    image: ghcr.io/sc4rlxrd/price-monitor-collector:${IMAGE_TAG:-sha-6b785c7}
+    image: ghcr.io/sc4rlxrd/price-monitor-collector:${IMAGE_TAG:-sha-9cffd00}
     container_name: price-monitor-collector
 
     profiles:
