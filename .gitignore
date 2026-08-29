@@ -51,3 +51,4 @@ secrets*.yaml
 # Secrets do monitoramento
 monitoring/telegram.env
 telegram.env
+.env
