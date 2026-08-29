@@ -5,12 +5,15 @@ umask 027
 
 readonly PROJECT_DIR="/opt/price-monitor"
 readonly COMPOSE_FILE="${PROJECT_DIR}/compose.yaml"
+readonly ENV_FILE="${PROJECT_DIR}/.env"
 readonly DATA_DIR="${PROJECT_DIR}/data"
 
 readonly JSON_FILE="${DATA_DIR}/precos.json"
 readonly H2_FILE="${DATA_DIR}/price-monitor.mv.db"
 
 readonly LOCK_FILE="/run/lock/price-monitor-collector.lock"
+readonly OPERATION_LOCK_FILE="/run/lock/price-monitor-operation.lock"
+
 readonly LOG_TAG="price-monitor-collector"
 
 log() {
@@ -38,6 +41,9 @@ validate_environment() {
   command -v docker >/dev/null 2>&1 || \
     fail "Docker não foi encontrado."
 
+  command -v flock >/dev/null 2>&1 || \
+    fail "O comando flock não foi encontrado."
+
   docker compose version >/dev/null 2>&1 || \
     fail "Docker Compose não foi encontrado."
 
@@ -58,6 +64,19 @@ validate_environment() {
     "${DATA_DIR}"
 }
 
+compose() {
+  if [[ -f "${ENV_FILE}" ]]; then
+    docker compose \
+      --env-file "${ENV_FILE}" \
+      --file "${COMPOSE_FILE}" \
+      "$@"
+  else
+    docker compose \
+      --file "${COMPOSE_FILE}" \
+      "$@"
+  fi
+}
+
 acquire_lock() {
   install \
     --directory \
@@ -74,6 +93,18 @@ acquire_lock() {
   fi
 }
 
+acquire_operation_lock() {
+  exec 8>"${OPERATION_LOCK_FILE}"
+
+  log "Aguardando lock operacional..."
+
+  if ! flock --wait 300 8; then
+    fail "Não foi possível obter o lock operacional após 5 minutos."
+  fi
+
+  log "Lock operacional obtido."
+}
+
 restore_application() {
   local original_exit_code=$?
 
@@ -82,8 +113,7 @@ restore_application() {
 
   log "Restaurando dashboard e Nginx."
 
-  docker compose \
-    --file "${COMPOSE_FILE}" \
+  compose \
     up \
     --detach \
     dashboard \
@@ -107,8 +137,7 @@ restore_application() {
 stop_application() {
   log "Parando Nginx e dashboard para liberar memória."
 
-  docker compose \
-    --file "${COMPOSE_FILE}" \
+  compose \
     stop \
     --timeout 30 \
     nginx \
@@ -118,8 +147,7 @@ stop_application() {
 run_collector() {
   log "Iniciando o collector."
 
-  docker compose \
-    --file "${COMPOSE_FILE}" \
+  compose \
     --profile collector \
     run \
     --rm \
@@ -145,15 +173,14 @@ validate_outputs() {
 show_status() {
   log "Estado final dos serviços:"
 
-  docker compose \
-    --file "${COMPOSE_FILE}" \
-    ps
+  compose ps
 }
 
 main() {
   require_root
   validate_environment
   acquire_lock
+  acquire_operation_lock
 
   trap restore_application EXIT INT TERM
 
