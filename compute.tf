@@ -48,6 +48,14 @@ resource "oci_core_instance" "bookcommerce" {
             "${path.module}/scripts/bootstrap-price-monitor.sh"
           )
 
+          deploy_price_monitor_script_b64 = filebase64(
+            "${path.module}/scripts/deploy-price-monitor.sh"
+          )
+
+          check_price_monitor_update_script_b64 = filebase64(
+            "${path.module}/scripts/check-price-monitor-update.sh"
+          )
+
           compose_yaml_b64 = filebase64(
             "${path.module}/docker/price-monitor-compose.yaml"
           )
@@ -56,7 +64,6 @@ resource "oci_core_instance" "bookcommerce" {
             "${path.module}/config/urls.txt"
           )
 
-
           nginx_bootstrap_conf_b64 = filebase64(
             "${path.module}/docker/nginx/bootstrap.conf.tftpl"
           )
@@ -64,7 +71,6 @@ resource "oci_core_instance" "bookcommerce" {
           nginx_default_conf_b64 = filebase64(
             "${path.module}/docker/nginx/default.conf.tftpl"
           )
-
 
           configure_https_script_b64 = filebase64(
             "${path.module}/scripts/configure-https.sh"
@@ -84,6 +90,14 @@ resource "oci_core_instance" "bookcommerce" {
 
           collector_timer_b64 = filebase64(
             "${path.module}/systemd/price-monitor-collector.timer"
+          )
+
+          update_service_b64 = filebase64(
+            "${path.module}/systemd/price-monitor-update.service"
+          )
+
+          update_timer_b64 = filebase64(
+            "${path.module}/systemd/price-monitor-update.timer"
           )
 
           monitor_script_b64 = filebase64(

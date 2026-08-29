@@ -20,6 +20,24 @@ write_files:
     content: ${bootstrap_script_b64}
 
   #
+  # Deploy controlado de uma versão específica do Price Monitor.
+  #
+  - path: /usr/local/sbin/deploy-price-monitor.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${deploy_price_monitor_script_b64}
+
+  #
+  # Verificação automática de novas versões publicadas no GHCR.
+  #
+  - path: /usr/local/sbin/check-price-monitor-update.sh
+    owner: root:root
+    permissions: "0755"
+    encoding: b64
+    content: ${check_price_monitor_update_script_b64}
+
+  #
   # Docker Compose de produção.
   #
   - path: /opt/price-monitor/compose.yaml
@@ -102,6 +120,24 @@ write_files:
     content: ${collector_timer_b64}
 
   #
+  # Serviço systemd responsável por verificar atualizações.
+  #
+  - path: /etc/systemd/system/price-monitor-update.service
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${update_service_b64}
+
+  #
+  # Timer systemd das verificações automáticas de atualização.
+  #
+  - path: /etc/systemd/system/price-monitor-update.timer
+    owner: root:root
+    permissions: "0644"
+    encoding: b64
+    content: ${update_timer_b64}
+
+  #
   # Monitoramento da VM por Telegram.
   #
   - path: /usr/local/bin/vm-monitor-telegram
@@ -123,7 +159,6 @@ write_files:
     content: ${monitor_timer_b64}
 
 runcmd:
-
   - [timedatectl, set-timezone, America/Sao_Paulo]
   - [timedatectl, set-ntp, "true"]
 
@@ -134,7 +169,7 @@ runcmd:
   - [bash, /usr/local/sbin/configure-https.sh, "${letsencrypt_email}", "${letsencrypt_staging}"]
 
   - [systemctl, enable, --now, price-monitor-collector.timer]
-
+  - [systemctl, enable, --now, price-monitor-update.timer]
   - [systemctl, enable, --now, vm-monitor-telegram.timer]
 
-final_message: "Price Monitor, HTTPS/TLS, Basic Auth, collector agendado, timezone, NTP e monitoramento Telegram provisionados."
+final_message: "Price Monitor, HTTPS/TLS, Basic Auth, collector agendado, atualização automática, timezone, NTP e monitoramento Telegram provisionados."
