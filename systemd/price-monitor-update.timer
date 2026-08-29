@@ -1,0 +1,15 @@
+[Unit]
+Description=Price Monitor automatic update schedule
+Documentation=https://github.com/Sc4rlxrd/Dashboard-Java-e-Python
+
+[Timer]
+OnCalendar=*-*-* *:07,17,27,37,47,57:00
+
+Persistent=true
+AccuracySec=30s
+RandomizedDelaySec=30s
+
+Unit=price-monitor-update.service
+
+[Install]
+WantedBy=timers.target

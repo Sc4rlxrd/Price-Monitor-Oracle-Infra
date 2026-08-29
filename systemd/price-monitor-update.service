@@ -1,0 +1,30 @@
+[Unit]
+Description=Price Monitor automatic image update
+Documentation=https://github.com/Sc4rlxrd/Dashboard-Java-e-Python
+
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+ConditionPathExists=/opt/price-monitor/compose.yaml
+
+[Service]
+Type=oneshot
+
+User=root
+Group=root
+UMask=0027
+
+Environment=COMPOSE_ANSI=never
+Environment=DOCKER_CLI_HINTS=false
+
+ExecStart=/usr/local/sbin/check-price-monitor-update.sh
+
+TimeoutStartSec=20min
+TimeoutStopSec=2min
+
+Restart=no
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=price-monitor-update
