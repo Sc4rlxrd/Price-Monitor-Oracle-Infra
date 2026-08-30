@@ -47,10 +47,10 @@ write_files:
     content: ${compose_yaml_b64}
 
   #
-  # Watchlist utilizada pelo collector.
+  # Watchlist utilizada pelo Dashboard e pelo collector.
   #
   - path: /opt/price-monitor/config/urls.txt
-    owner: root:root
+    owner: "1000:1000"
     permissions: "0644"
     encoding: b64
     content: ${collector_urls_b64}

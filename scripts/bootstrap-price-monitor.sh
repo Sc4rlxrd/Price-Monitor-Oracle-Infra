@@ -7,6 +7,9 @@ export DEBIAN_FRONTEND=noninteractive
 readonly PROJECT_DIR="/opt/price-monitor"
 readonly COMPOSE_FILE="${PROJECT_DIR}/compose.yaml"
 
+readonly DASHBOARD_UID="1000"
+readonly DASHBOARD_GID="1000"
+
 readonly NGINX_DIR="${PROJECT_DIR}/nginx"
 readonly AUTH_DIR="${NGINX_DIR}/auth"
 readonly AUTH_FILE="${AUTH_DIR}/.htpasswd"
@@ -173,6 +176,10 @@ prepare_directories() {
 
   [[ -f "${NGINX_DIR}/default.conf.tftpl" ]] || \
     fail "O template HTTPS do Nginx não foi provisionado."
+
+  chown \
+    "${DASHBOARD_UID}:${DASHBOARD_GID}" \
+    "${PROJECT_DIR}/config/urls.txt"
 
   chmod 0644 \
     "${COMPOSE_FILE}" \
